@@ -1,0 +1,33 @@
+input:
+  train_csv: "data/processed/features_train.cvclean.csv"  # cleaned by Step 4
+  val_csv:   "data/processed/features_val.csv"
+  test_csv:  "data/processed/features_test.csv"
+  label_col: "label"
+
+cv:
+  n_splits: 5
+  seed: 42
+  standardize: true
+
+ga:
+  pop_size: 40
+  generations: 30
+  tournament_size: 3
+  crossover_prob: 0.9
+  mutation_prob: 0.01         # per-bit flip prob
+  min_features: 10            # never allow empty/too-small subsets
+  early_stop_patience: 6      # stop if no new best for N generations
+  maximize_metric: "accuracy" # "accuracy" or "f1"
+
+classifier:
+  type: "linear_svc"          # "linear_svc" or "svc_rbf"
+  C: 1.0
+
+output:
+  selected_features_json: "outputs/artifacts/selected_features.json"
+  mask_npy: "outputs/artifacts/selected_mask.npy"
+  selected_train_csv: "data/processed/train.selected.csv"
+  selected_val_csv:   "data/processed/val.selected.csv"
+  selected_test_csv:  "data/processed/test.selected.csv"
+  ga_history_csv: "outputs/artifacts/efsa_history.csv"
+  ga_report_json: "outputs/artifacts/efsa_report.json"

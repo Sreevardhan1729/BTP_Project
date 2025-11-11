@@ -1,0 +1,27 @@
+input:
+  train_csv: "data/processed/train.selected.csv"
+  val_csv:   "data/processed/val.selected.csv"
+  test_csv:  "data/processed/test.selected.csv"
+  label_col: "label"
+
+cv:
+  n_splits: 5
+  seed: 42
+
+model:
+  type: "linear_svc"         # "linear_svc" or "svc_rbf"
+  class_weight: null         # null or "balanced"
+  grid:
+    C: [0.25, 0.5, 1.0, 2.0, 4.0]
+    gamma: [0.001, 0.01, 0.1, 1.0]   # used only for svc_rbf
+
+train:
+  use_trainval_for_final: true
+
+output:
+  model_path: "outputs/artifacts/svm_model.joblib"
+  metrics_json: "outputs/results/svm_metrics.json"
+  report_txt: "outputs/results/svm_classification_report.txt"
+  preds_csv: "outputs/results/svm_test_predictions.csv"
+  cm_png: "reports/figures/svm_confusion_matrix.png"
+  cm_csv: "reports/tables/svm_confusion_matrix.csv"

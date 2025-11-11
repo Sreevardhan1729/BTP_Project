@@ -1,0 +1,39 @@
+input:
+  train_csv: "data/processed/train.selected.csv"
+  val_csv:   "data/processed/val.selected.csv"
+  test_csv:  "data/processed/test.selected.csv"
+  label_col: "label"
+
+prompt:
+  top_k_tfidf: 20         # max TF-IDF features to verbalize per example
+  round_decimals: 3
+  tfidf_prefix: "tfidf:"  # how TF-IDF columns are prefixed
+  include_engineered: true
+
+model:
+  model_name_or_path: "sshleifer/tiny-gpt2"
+  max_length: 512
+  seed: 42
+
+training:
+  epochs: 1
+  batch_size: 8
+  learning_rate: 5.0e-5
+  weight_decay: 0.0
+  warmup_ratio: 0.0
+  gradient_accumulation_steps: 1
+  logging_steps: 50
+  save_total_limit: 1
+
+gen:
+  max_new_tokens: 1
+  do_sample: false
+
+output:
+  base_dir: "outputs/artifacts/llm"
+  model_dir: "outputs/artifacts/llm/model"
+  train_txt: "outputs/artifacts/llm/sft_train.txt"
+  val_txt:   "outputs/artifacts/llm/sft_val.txt"
+  metrics_json: "outputs/results/llm_metrics.json"
+  report_txt:   "outputs/results/llm_classification_report.txt"
+  preds_csv:    "outputs/results/llm_test_predictions.csv"

@@ -1,0 +1,27 @@
+input:
+  features_train_csv: "data/processed/features_train.csv"
+  # (optional) Only used for sanity checks or later steps
+  features_val_csv: "data/processed/features_val.csv"
+  label_col: "label"
+
+outliers:
+  standardize: true         # z-score scale features before scoring
+  # Mahalanobis settings
+  md:
+    use_ledoit: true        # stable covariance estimate
+    ridge: 1.0e-6           # tiny diagonal jitter for inversion
+    threshold_sigma_e: 2.5  # outlier if MD > mean + e * std
+  # KNN settings
+  knn:
+    k: 10                   # neighbors (auto-clamped to n-1)
+    metric: "minkowski"     # scikit-learn metric
+    p: 2                    # only used if metric=minkowski
+    score: "avg_k_distance" # "avg_k_distance" or "kth_distance"
+    threshold_sigma_e: 2.0  # outlier if score > mean + e * std
+  # How to combine detectors
+  combine: "intersection"   # "intersection" or "union"
+
+output:
+  cleaned_train_out: "data/processed/features_train.clean.csv"
+  mask_json: "outputs/artifacts/outliers_mask.json"
+  scores_csv: "outputs/artifacts/outlier_scores.csv"

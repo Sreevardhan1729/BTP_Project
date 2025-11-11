@@ -1,0 +1,25 @@
+input:
+  features_train_csv: "data/processed/features_train.csv"
+  label_col: "label"
+
+cv:
+  n_splits: 5
+  seed: 42
+  standardize: true          # standardize before MD/KNN and classifier
+
+search:
+  n_trials: 30               # increase for better search
+  md_e_range: [1.5, 4.0]     # e for MD threshold: mean + e * std
+  knn_e_range: [1.0, 4.0]    # e for KNN threshold
+  k_range: [5, 50]           # KNN neighbors (auto-clamped per fold)
+  combine_choices: ["intersection", "union"]
+  knn_score_choices: ["avg_k_distance", "kth_distance"]
+
+classifier:
+  type: "linear_svc"         # "linear_svc" or "svc_rbf"
+  C: 1.0                     # only used if linear_svc; keep simple in this step
+
+output:
+  cleaned_train_out: "data/processed/features_train.cvclean.csv"
+  tuning_report_json: "outputs/artifacts/outlier_cv_tuning.json"
+  trial_logs_csv: "outputs/artifacts/outlier_cv_trials.csv"

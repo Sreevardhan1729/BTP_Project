@@ -1,0 +1,16 @@
+input:
+  train_csv: "data/raw/politifact_train.csv"
+  test_csv: "data/raw/politifact_test.csv"
+  text_col: "news"
+  label_col: "label"
+  drop_cols: ["Unnamed: 0"]
+
+output:
+  processed_dir: "data/processed"
+  train_out: "politifact_train.std.csv"
+  val_out: "politifact_val.std.csv"
+  test_out: "politifact_test.std.csv"
+
+split:
+  val_size: 0.20
+  seed: 42

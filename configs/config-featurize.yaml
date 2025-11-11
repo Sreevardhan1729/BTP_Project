@@ -1,0 +1,25 @@
+input:
+  train_csv: "data/processed/politifact_train.std.csv"
+  val_csv:   "data/processed/politifact_val.std.csv"
+  test_csv:  "data/processed/politifact_test.std.csv"
+  text_col:  "text"
+  label_col: "label"
+
+featurizer:
+  target_dim: 220
+  engineered_dim: 20
+  tfidf:
+    analyzer: "word"
+    ngram_range: [1, 1]
+    lowercase: true
+    min_df: 2
+    max_df: 1.0
+    max_features_hint: 200
+
+output:
+  features_dir: "data/processed"
+  train_out: "features_train.csv"
+  val_out:   "features_val.csv"
+  test_out:  "features_test.csv"
+  feature_names_json: "features.names.json"
+  vectorizer_path: "outputs/artifacts/tfidf_vectorizer.joblib"
