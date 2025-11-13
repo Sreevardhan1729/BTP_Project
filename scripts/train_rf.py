@@ -15,7 +15,7 @@ from src.fdof_pipeline.models.svm import (
     CVConfig, ModelConfig, cv_search, fit_final, evaluate, save_artifacts
 )
 
-logger = get_logger("fdof.train_svm")
+logger = get_logger("fdof.train_rf")
 
 def _load(path: str, label_col: str) -> pd.DataFrame:
     df = pd.read_csv(path)
@@ -27,9 +27,9 @@ def _load(path: str, label_col: str) -> pd.DataFrame:
     return df
 
 def main():
-    parser = argparse.ArgumentParser(description="Step 6: Train & Evaluate SVM on selected features")
-    parser.add_argument("--config", type=str, default="configs/config-svm.yaml",
-                        help="Path to SVM config YAML")
+    parser = argparse.ArgumentParser(description="Step 6: Train & Evaluate Random Forest on selected features")
+    parser.add_argument("--config", type=str, default="configs/config-rf.yaml",
+                        help="Path to RF config YAML")
     args = parser.parse_args()
 
     cfg_path = Path(args.config)
@@ -48,15 +48,11 @@ def main():
 
     cv_cfg = CVConfig(n_splits=int(cv.get("n_splits", 5)), seed=int(cv.get("seed", 42)))
     model_cfg = ModelConfig(
-        type=str(model.get("type", "linear_svc")),
+        type=str(model.get("type", "random_forest")),
         class_weight=(None if model.get("class_weight", None) in [None, "null"] else str(model.get("class_weight"))),
-        grid_C=tuple(model.get("grid", {}).get("C", [0.25, 0.5, 1.0, 2.0, 4.0])),
-        grid_gamma=tuple(model.get("grid", {}).get("gamma", [0.001, 0.01, 0.1, 1.0])),
         grid_n_estimators=tuple(model.get("grid", {}).get("n_estimators", [100, 200, 300])),
         grid_max_depth=tuple(model.get("grid", {}).get("max_depth", [10, 20, None])),
         grid_min_samples_leaf=tuple(model.get("grid", {}).get("min_samples_leaf", [1, 2, 4])),
-        grid_learning_rate=tuple(model.get("grid", {}).get("learning_rate", [0.05, 0.1, 0.2])),
-        grid_subsample=tuple(model.get("grid", {}).get("subsample", [0.8, 1.0])),
     )
 
     # CV search on TRAIN only
@@ -88,7 +84,7 @@ def main():
         cm_png=out["cm_png"],
         cm_csv=out["cm_csv"],
     )
-    logger.info("SVM training complete.")
+    logger.info("RF training complete.")
 
 if __name__ == "__main__":
     main()

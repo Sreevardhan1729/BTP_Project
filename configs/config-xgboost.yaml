@@ -1,0 +1,29 @@
+input:
+  train_csv: "data/processed/train.selected.csv"
+  val_csv:   "data/processed/val.selected.csv"
+  test_csv:  "data/processed/test.selected.csv"
+  label_col: "label"
+
+cv:
+  n_splits: 5
+  seed: 42
+
+model:
+  type: "xgboost"
+  class_weight: null
+  grid:
+    n_estimators: [100, 200, 300]
+    max_depth: [3, 5, 7]
+    learning_rate: [0.05, 0.1, 0.2]
+    subsample: [0.8, 1.0]
+
+train:
+  use_trainval_for_final: true
+
+output:
+  model_path: "outputs/artifacts/xgboost_model.joblib"
+  metrics_json: "outputs/results/xgboost_metrics.json"
+  report_txt: "outputs/results/xgboost_classification_report.txt"
+  preds_csv: "outputs/results/xgboost_test_predictions.csv"
+  cm_png: "reports/figures/xgboost_confusion_matrix.png"
+  cm_csv: "reports/tables/xgboost_confusion_matrix.csv"

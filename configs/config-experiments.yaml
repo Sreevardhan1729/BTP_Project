@@ -18,15 +18,30 @@ paths:
   efsa_history_csv: "outputs/artifacts/efsa_history.csv"
   outlier_trials_csv: "outputs/artifacts/outlier_cv_trials.csv"
   step6_model_path: "outputs/artifacts/svm_model.joblib" # trained on selected features (Step 6)
+  step7_model_path: "outputs/artifacts/rf_model.joblib"
+  step8_model_path: "outputs/artifacts/xgboost_model.joblib"
 
 label_col: "label"
 
 model:
-  type: "linear_svc"           # "linear_svc" or "svc_rbf"
-  class_weight: null           # null or "balanced"
+  type: "linear_svc"
+  class_weight: null
   grid:
-    C: [0.25, 0.5, 1.0, 2.0, 4.0]
-    gamma: [0.001, 0.01, 0.1, 1.0]   # used only for RBF
+    C: [0.5, 1.0, 2.0]
+    gamma: [0.01, 0.1]
+
+rf:
+  grid:
+    n_estimators: [100, 200]
+    max_depth: [10, None]
+    min_samples_leaf: [1, 4]
+
+xgboost:
+  grid:
+    n_estimators: [100, 200]
+    max_depth: [3, 7]
+    learning_rate: [0.05, 0.1]
+    subsample: [1.0]
 
 cv:
   n_splits: 5
@@ -42,12 +57,12 @@ output:
 
   # files auto-produced by suite
   summary_csv: "reports/tables/experiments_summary.csv"
-  coef_top_pos_csv: "reports/tables/svm_top_positive_features.csv"
-  coef_top_neg_csv: "reports/tables/svm_top_negative_features.csv"
+  coef_top_pos_csv: "reports/tables/top_positive_features.csv"
+  coef_top_neg_csv: "reports/tables/top_negative_features.csv"
 
   # figures
   efsa_progress_png: "reports/figures/efsa_progress.png"
   outlier_trials_k_vs_acc_png: "reports/figures/outlier_trials_k_vs_acc.png"
   outlier_trials_box_acc_png: "reports/figures/outlier_trials_acc_by_combine.png"
-  svm_top_pos_png: "reports/figures/svm_top_positive_features.png"
-  svm_top_neg_png: "reports/figures/svm_top_negative_features.png"
+  top_pos_png: "reports/figures/top_positive_features.png"
+  top_neg_png: "reports/figures/top_negative_features.png"

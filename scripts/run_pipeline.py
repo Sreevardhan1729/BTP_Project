@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#python scripts/run_pipeline.py --config configs/config-run.yaml``
+#python scripts/run_pipeline.py --config configs/config-run.yaml
 from __future__ import annotations
 
 import argparse

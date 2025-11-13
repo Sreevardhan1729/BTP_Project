@@ -23,6 +23,14 @@ steps:
     enabled: true
     script: "scripts/train_svm.py"
     config: "configs/config-svm.yaml"
+  train_rf:
+    enabled: true
+    script: "scripts/train_rf.py"
+    config: "configs/config-rf.yaml"
+  train_xgboost:
+    enabled: true
+    script: "scripts/train_xgboost.py"
+    config: "configs/config-xgboost.yaml"
   train_llm:
     enabled: true
     script: "scripts/train_llm.py"

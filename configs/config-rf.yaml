@@ -1,0 +1,28 @@
+input:
+  train_csv: "data/processed/train.selected.csv"
+  val_csv:   "data/processed/val.selected.csv"
+  test_csv:  "data/processed/test.selected.csv"
+  label_col: "label"
+
+cv:
+  n_splits: 5
+  seed: 42
+
+model:
+  type: "random_forest"
+  class_weight: null
+  grid:
+    n_estimators: [100, 200, 300]
+    max_depth: [10, 20, null]
+    min_samples_leaf: [1, 2, 4]
+
+train:
+  use_trainval_for_final: true
+
+output:
+  model_path: "outputs/artifacts/rf_model.joblib"
+  metrics_json: "outputs/results/rf_metrics.json"
+  report_txt: "outputs/results/rf_classification_report.txt"
+  preds_csv: "outputs/results/rf_test_predictions.csv"
+  cm_png: "reports/figures/rf_confusion_matrix.png"
+  cm_csv: "reports/tables/rf_confusion_matrix.csv"

@@ -32,7 +32,7 @@ def _load_df(path: str, label_col: str) -> pd.DataFrame:
     df[feat_cols] = df[feat_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
     return df
 
-def _run_svm_scenario(name: str,
+def _run_scenario(name: str,
                       train_csv: str, val_csv: str, test_csv: str, label_col: str,
                       cv_cfg: SVM_CVConfig, model_cfg: SVM_ModelConfig,
                       out_dir: Path) -> dict:
@@ -51,7 +51,7 @@ def _run_svm_scenario(name: str,
     test_metrics = evaluate(final_model, test_df, label_col)
 
     # Save artifacts, but scenario-specific
-    model_path = out_dir / f"{name}_svm_model.joblib"
+    model_path = out_dir / f"{name}_model.joblib"
     joblib.dump(final_model, model_path)
 
     preds = final_model.predict(test_df[[c for c in test_df.columns if c != label_col]].to_numpy())
@@ -70,6 +70,7 @@ def _run_svm_scenario(name: str,
 
     return {
         "scenario": name,
+        "model": model_cfg.type,
         "cv_acc": float(cv_acc),
         "cv_f1": float(cv_f1),
         "test_accuracy": float(test_metrics["accuracy"]),
@@ -151,25 +152,30 @@ def _plot_outlier_trials(trials_csv: str, out_k_vs_acc: str, out_box: str):
     fig2.savefig(out_box, dpi=160)
     plt.close(fig2)
 
-def _svm_top_features_from_model(model_path: str, ref_train_csv: str, out_pos_csv: str, out_neg_csv: str,
+def _top_features_from_model(model_path: str, ref_train_csv: str, out_pos_csv: str, out_neg_csv: str,
                                  out_pos_png: str, out_neg_png: str, label_col: str):
     model = joblib.load(model_path)
-    # Expect Pipeline(scaler -> svm)
+    # Expect Pipeline(scaler -> model)
     try:
-        svm = model.named_steps["svm"]
+        inner_model = model.named_steps["model"]
     except Exception:
-        logger.warning("Model pipeline missing 'svm' step; skipping coefficients plot.")
+        logger.warning("Model pipeline missing 'model' step; skipping coefficients plot.")
         return
 
-    if not hasattr(svm, "coef_"):
-        logger.info("Non-linear SVM detected (no coef_); skipping top-coefficient plots.")
+    if hasattr(inner_model, "coef_"):
+        # Linear models
+        coefs = inner_model.coef_.ravel()
+    elif hasattr(inner_model, "feature_importances_"):
+        # Tree-based models
+        coefs = inner_model.feature_importances_
+    else:
+        logger.info("Model does not have 'coef_' or 'feature_importances_'; skipping top-coefficient plots.")
         return
 
     # feature names from CSV order
     df = pd.read_csv(ref_train_csv)
     feat_cols = [c for c in df.columns if c != label_col]
 
-    coefs = svm.coef_.ravel()
     # Map to names
     pairs = list(zip(feat_cols, coefs))
     # Top positive/negative
@@ -178,8 +184,8 @@ def _svm_top_features_from_model(model_path: str, ref_train_csv: str, out_pos_cs
 
     # Save CSVs
     Path(out_pos_csv).parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(top_pos, columns=["feature", "coef"]).to_csv(out_pos_csv, index=False)
-    pd.DataFrame(top_neg, columns=["feature", "coef"]).to_csv(out_neg_csv, index=False)
+    pd.DataFrame(top_pos, columns=["feature", "importance"]).to_csv(out_pos_csv, index=False)
+    pd.DataFrame(top_neg, columns=["feature", "importance"]).to_csv(out_neg_csv, index=False)
 
     # Plots
     def _barh(data, title, out_png):
@@ -195,8 +201,8 @@ def _svm_top_features_from_model(model_path: str, ref_train_csv: str, out_pos_cs
         fig.savefig(out_png, dpi=160)
         plt.close(fig)
 
-    _barh(top_pos, "Top Positive SVM Coefficients (push toward class 1)", out_pos_png)
-    _barh(top_neg, "Top Negative SVM Coefficients (push toward class 0)", out_neg_png)
+    _barh(top_pos, "Top 20 Positive Features", out_pos_png)
+    _barh(top_neg, "Top 20 Negative Features", out_neg_png)
 
 def main():
     parser = argparse.ArgumentParser(description="Step 8: Experiment suite, ablations, explainability")
@@ -214,51 +220,51 @@ def main():
     paths = cfg["paths"]
     label_col = cfg.get("label_col", "label")
     out = cfg["output"]
-    model_cfg = cfg["model"]; cv_cfg = cfg["cv"]
+    model_cfg_data = cfg["model"]; cv_cfg_data = cfg["cv"]
 
     exp_dir = Path(out["exp_dir"]); exp_dir.mkdir(parents=True, exist_ok=True)
 
-    svm_cv = SVM_CVConfig(n_splits=int(cv_cfg.get("n_splits", 5)),
-                          seed=int(cv_cfg.get("seed", 42)))
-    svm_model = SVM_ModelConfig(
-        type=str(model_cfg.get("type", "linear_svc")),
-        class_weight=(None if model_cfg.get("class_weight", None) in [None, "null"] else str(model_cfg.get("class_weight"))),
-        grid_C=tuple(model_cfg.get("grid", {}).get("C", [0.25, 0.5, 1.0, 2.0, 4.0])),
-        grid_gamma=tuple(model_cfg.get("grid", {}).get("gamma", [0.001, 0.01, 0.1, 1.0])),
-    )
-
+    cv_cfg = SVM_CVConfig(n_splits=int(cv_cfg_data.get("n_splits", 5)),
+                          seed=int(cv_cfg_data.get("seed", 42)))
+    
     results = []
-
-    # Scenario A: Baseline (no outliers, no selection)
-    results.append(_run_svm_scenario(
-        "baseline",
-        paths["baseline_train"], paths["baseline_val"], paths["baseline_test"],
-        label_col, svm_cv, svm_model, exp_dir
-    ))
-
-    # Scenario B: Cleaned only (outliers removed)
-    results.append(_run_svm_scenario(
-        "cleaned_only",
-        paths["cleaned_train"], paths["cleaned_val"], paths["cleaned_test"],
-        label_col, svm_cv, svm_model, exp_dir
-    ))
-
-    # Scenario C: Selected (FDOF full: cleaned + EFSA)
-    results.append(_run_svm_scenario(
-        "selected",
-        paths["selected_train"], paths["selected_val"], paths["selected_test"],
-        label_col, svm_cv, svm_model, exp_dir
-    ))
-
-    # Ablation: drop engineered features from selected (optional)
+    scenarios = {
+        "baseline": (paths["baseline_train"], paths["baseline_val"], paths["baseline_test"]),
+        "cleaned_only": (paths["cleaned_train"], paths["cleaned_val"], paths["cleaned_test"]),
+        "selected": (paths["selected_train"], paths["selected_val"], paths["selected_test"]),
+    }
     if bool(cfg.get("ablation", {}).get("drop_engineered_from_selected", True)):
-        derived_dir = exp_dir / "derived"
-        tr, va, te = _derive_selected_wo_engineered(
-            paths["selected_train"], paths["selected_val"], paths["selected_test"], label_col, derived_dir
+        scenarios["selected_no_engineered"] = _derive_selected_wo_engineered(
+            paths["selected_train"], paths["selected_val"], paths["selected_test"], label_col, exp_dir / "derived"
         )
-        results.append(_run_svm_scenario(
-            "selected_no_engineered", tr, va, te, label_col, svm_cv, svm_model, exp_dir
-        ))
+
+    for model_type in ["linear_svc", "random_forest", "xgboost"]:
+        
+        grid_data = model_cfg_data.get("grid", {})
+        if model_type == "random_forest":
+            grid_data = cfg.get("rf", {}).get("grid", {})
+        elif model_type == "xgboost":
+            grid_data = cfg.get("xgboost", {}).get("grid", {})
+
+        current_model_cfg = SVM_ModelConfig(
+            type=model_type,
+            class_weight=(None if model_cfg_data.get("class_weight", None) in [None, "null"] else str(model_cfg_data.get("class_weight"))),
+            grid_C=tuple(grid_data.get("C", [0.25, 0.5, 1.0, 2.0, 4.0])),
+            grid_gamma=tuple(grid_data.get("gamma", [0.001, 0.01, 0.1, 1.0])),
+            grid_n_estimators=tuple(grid_data.get("n_estimators", [100, 200, 300])),
+            grid_max_depth=tuple(grid_data.get("max_depth", [10, 20, None])),
+            grid_min_samples_leaf=tuple(grid_data.get("min_samples_leaf", [1, 2, 4])),
+            grid_learning_rate=tuple(grid_data.get("learning_rate", [0.05, 0.1, 0.2])),
+            grid_subsample=tuple(grid_data.get("subsample", [0.8, 1.0])),
+        )
+
+        for name, (train_csv, val_csv, test_csv) in scenarios.items():
+            scenario_name = f"{name}_{model_type}"
+            results.append(_run_scenario(
+                scenario_name,
+                train_csv, val_csv, test_csv,
+                label_col, cv_cfg, current_model_cfg, exp_dir
+            ))
 
     # Write summary table
     summary = pd.DataFrame(results)
@@ -272,17 +278,19 @@ def main():
         _plot_outlier_trials(paths["outlier_trials_csv"],
                              out["outlier_trials_k_vs_acc_png"],
                              out["outlier_trials_box_acc_png"])
-    # SVM top features from Step 6 model (trained on selected)
-    if Path(paths["step6_model_path"]).exists():
-        _svm_top_features_from_model(
-            model_path=paths["step6_model_path"],
-            ref_train_csv=paths["selected_train"],
-            out_pos_csv=out["coef_top_pos_csv"],
-            out_neg_csv=out["coef_top_neg_csv"],
-            out_pos_png=out["svm_top_pos_png"],
-            out_neg_png=out["svm_top_neg_png"],
-            label_col=label_col,
-        )
+    # Top features from selected models
+    for model_type in ["linear_svc", "random_forest", "xgboost"]:
+        model_path = exp_dir / f"selected_{model_type}_model.joblib"
+        if model_path.exists():
+            _top_features_from_model(
+                model_path=str(model_path),
+                ref_train_csv=paths["selected_train"],
+                out_pos_csv=out["coef_top_pos_csv"].replace(".csv", f"_{model_type}.csv"),
+                out_neg_csv=out["coef_top_neg_csv"].replace(".csv", f"_{model_type}.csv"),
+                out_pos_png=out["top_pos_png"].replace(".png", f"_{model_type}.png"),
+                out_neg_png=out["top_neg_png"].replace(".png", f"_{model_type}.png"),
+                label_col=label_col,
+            )
 
     logger.info(f"Experiment suite complete. Summary -> {out['summary_csv']}")
 

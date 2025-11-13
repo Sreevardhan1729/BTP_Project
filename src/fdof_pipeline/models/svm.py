@@ -24,12 +24,22 @@ class CVConfig:
     n_splits: int = 5
     seed: int = 42
 
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
 @dataclass
 class ModelConfig:
-    type: str = "linear_svc"          # "linear_svc" or "svc_rbf"
-    class_weight: Optional[str] = None # None or "balanced"
-    grid_C: Tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
-    grid_gamma: Tuple[float, ...] = (0.001, 0.01, 0.1, 1.0)
+    type: str = "linear_svc"
+    class_weight: str | None = None
+    grid_C: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
+    grid_gamma: tuple[float, ...] = (0.001, 0.01, 0.1, 1.0)
+    # RF settings
+    grid_n_estimators: tuple[int, ...] = (100, 200, 300)
+    grid_max_depth: tuple[int | None, ...] = (10, 20, None)
+    grid_min_samples_leaf: tuple[int, ...] = (1, 2, 4)
+    # XGBoost settings
+    grid_learning_rate: tuple[float, ...] = (0.05, 0.1, 0.2)
+    grid_subsample: tuple[float, ...] = (0.8, 1.0)
 
 def _ensure_xy(df: pd.DataFrame, label_col: str) -> Tuple[np.ndarray, np.ndarray, list[str]]:
     feat_cols = [c for c in df.columns if c != label_col]
@@ -39,23 +49,40 @@ def _ensure_xy(df: pd.DataFrame, label_col: str) -> Tuple[np.ndarray, np.ndarray
 
 def _build_pipeline(cfg: ModelConfig) -> Pipeline:
     if cfg.type == "svc_rbf":
-        svm = SVC(kernel="rbf", probability=False, class_weight=cfg.class_weight, random_state=0)
+        model = SVC(kernel="rbf", probability=False, class_weight=cfg.class_weight, random_state=0)
+    elif cfg.type == "random_forest":
+        model = RandomForestClassifier(class_weight=cfg.class_weight, random_state=0)
+    elif cfg.type == "xgboost":
+        model = XGBClassifier(random_state=0, use_label_encoder=False, eval_metric='logloss')
     else:
-        svm = LinearSVC(dual="auto", class_weight=cfg.class_weight, random_state=0, max_iter=10000)
+        model = LinearSVC(dual="auto", class_weight=cfg.class_weight, random_state=0, max_iter=10000)
     pipe = Pipeline([
         ("scaler", StandardScaler(with_mean=True, with_std=True)),
-        ("svm", svm),
+        ("model", model),
     ])
     return pipe
 
 def _param_grid(cfg: ModelConfig) -> Dict[str, list]:
     if cfg.type == "svc_rbf":
         return {
-            "svm__C": list(cfg.grid_C),
-            "svm__gamma": list(cfg.grid_gamma),
+            "model__C": list(cfg.grid_C),
+            "model__gamma": list(cfg.grid_gamma),
         }
-    else:
-        return {"svm__C": list(cfg.grid_C)}
+    elif cfg.type == "random_forest":
+        return {
+            "model__n_estimators": list(cfg.grid_n_estimators),
+            "model__max_depth": list(cfg.grid_max_depth),
+            "model__min_samples_leaf": list(cfg.grid_min_samples_leaf),
+        }
+    elif cfg.type == "xgboost":
+        return {
+            "model__n_estimators": list(cfg.grid_n_estimators),
+            "model__max_depth": [int(x) if x is not None else None for x in cfg.grid_max_depth],
+            "model__learning_rate": list(cfg.grid_learning_rate),
+            "model__subsample": list(cfg.grid_subsample),
+        }
+    else: # linear_svc
+        return {"model__C": list(cfg.grid_C)}
 
 def cv_search(
     df: pd.DataFrame,
@@ -71,17 +98,19 @@ def cv_search(
     gs = GridSearchCV(
         estimator=pipe,
         param_grid=grid,
-        scoring="accuracy",
+        scoring=["accuracy", "f1"],
         cv=skf,
         n_jobs=-1,
-        refit=True,
+        refit="accuracy",
         verbose=0,
     )
     gs.fit(X, y)
-    y_pred = gs.predict(X)
-    acc = accuracy_score(y, y_pred)
-    f1 = f1_score(y, y_pred)
-    logger.info(f"CV best params: {gs.best_params_} | CV-fit Acc={acc:.4f} F1={f1:.4f}")
+    
+    best_idx = gs.best_index_
+    acc = gs.cv_results_["mean_test_accuracy"][best_idx]
+    f1 = gs.cv_results_["mean_test_f1"][best_idx]
+
+    logger.info(f"CV best params: {gs.best_params_} | CV Acc={acc:.4f} F1={f1:.4f}")
     return gs.best_estimator_, gs.best_params_, float(acc), float(f1)
 
 def fit_final(estimator: Pipeline, df: pd.DataFrame, label_col: str) -> Pipeline:

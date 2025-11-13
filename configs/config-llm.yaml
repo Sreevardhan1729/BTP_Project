@@ -11,6 +11,10 @@ prompt:
   include_engineered: true
 
 model:
+  # This is a lightweight model to avoid memory issues on MPS devices.
+  # For more powerful models (if you have sufficient VRAM), consider:
+  # - "microsoft/Phi-3-mini-4k-instruct"
+  # - "mistralai/Mistral-7B-Instruct-v0.2"
   model_name_or_path: "sshleifer/tiny-gpt2"
   max_length: 512
   seed: 42
