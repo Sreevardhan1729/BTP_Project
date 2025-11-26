@@ -1,0 +1,56 @@
+steps:
+  prepare_data:
+    enabled: false
+    script: "scripts/prepare_data.py"
+    config: "configs/config-data.yaml"
+  featurize:
+    enabled: false
+    script: "scripts/featurize.py"
+    config: "configs/config-featurize.yaml"
+  apply_outliers:
+    enabled: false
+    script: "scripts/apply_outliers.py"
+    config: "configs/config-outliers.yaml"
+  tune_outliers:
+    enabled: false
+    script: "scripts/tune_outliers.py"
+    config: "configs/config-tune-outliers.yaml"
+  run_efsa:
+    enabled: false
+    script: "scripts/run_efsa.py"
+    config: "configs/config-efsa.yaml"
+  train_svm:
+    enabled: true
+    script: "scripts/train_svm.py"
+    config: "configs/config-svm.yaml"
+  train_rf:
+    enabled: false
+    script: "scripts/train_rf.py"
+    config: "configs/config-rf.yaml"
+  train_xgboost:
+    enabled: false
+    script: "scripts/train_xgboost.py"
+    config: "configs/config-xgboost.yaml"
+  train_llm:
+    enabled: false
+    script: "scripts/train_llm.py"
+    config: "configs/config-llm.yaml"
+  run_experiments:
+    enabled: false
+    script: "scripts/run_experiments.py"
+    config: "configs/config-experiments.yaml"
+
+report:
+  output_markdown: "reports/final_report.md"
+
+pack:
+  output_zip: "outputs/deliverables/fdof_deliverable.zip"
+  include:
+    - "configs/*.yaml"
+    - "outputs/artifacts/**"
+    - "outputs/results/**"
+    - "reports/figures/**"
+    - "reports/tables/**"
+    - "reports/final_report.md"
+    - "requirements.txt"
+    - "README.md"

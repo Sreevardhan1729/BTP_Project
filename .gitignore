@@ -1,6 +1,6 @@
 .venv/
 .env
 .DS_Store
-outputs/
 reports/
 data/
+outputs/

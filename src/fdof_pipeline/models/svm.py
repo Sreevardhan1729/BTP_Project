@@ -172,6 +172,7 @@ def save_artifacts(
         f.write(rep + "\n")
 
     # Predictions CSV
+    pd.Now, I'll rerun the SVM training to ensure the predictions file is in the correct format.
     pd.DataFrame({
         "y_true": y_true,
         "y_pred": y_pred
