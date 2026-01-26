@@ -2,5 +2,6 @@
 .env
 .DS_Store
 reports/
-data/
+/data/
 outputs/
+28614938.zip

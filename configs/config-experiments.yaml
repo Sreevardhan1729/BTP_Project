@@ -33,7 +33,7 @@ model:
 rf:
   grid:
     n_estimators: [100, 200]
-    max_depth: [10, None]
+    max_depth: [10, null]
     min_samples_leaf: [1, 4]
 
 xgboost:

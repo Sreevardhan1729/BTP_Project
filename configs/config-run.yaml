@@ -1,34 +1,34 @@
 steps:
   prepare_data:
-    enabled: true
+    enabled: false
     script: "scripts/prepare_data.py"
     config: "configs/config-data.yaml"     # your Step-1 path
   featurize:
-    enabled: true
+    enabled: false
     script: "scripts/featurize.py"
     config: "configs/config-featurize.yaml"
   apply_outliers:
-    enabled: true
+    enabled: false
     script: "scripts/apply_outliers.py"
     config: "configs/config-outliers.yaml"
   tune_outliers:
-    enabled: true
+    enabled: false
     script: "scripts/tune_outliers.py"
     config: "configs/config-tune-outliers.yaml"
   run_efsa:
-    enabled: true
+    enabled: false
     script: "scripts/run_efsa.py"
     config: "configs/config-efsa.yaml"
   train_svm:
-    enabled: true
+    enabled: false
     script: "scripts/train_svm.py"
     config: "configs/config-svm.yaml"
   train_rf:
-    enabled: true
+    enabled: false
     script: "scripts/train_rf.py"
     config: "configs/config-rf.yaml"
   train_xgboost:
-    enabled: true
+    enabled: false
     script: "scripts/train_xgboost.py"
     config: "configs/config-xgboost.yaml"
   train_llm:
@@ -36,7 +36,7 @@ steps:
     script: "scripts/train_llm.py"
     config: "configs/config-llm.yaml"
   run_experiments:
-    enabled: true
+    enabled: false
     script: "scripts/run_experiments.py"
     config: "configs/config-experiments.yaml"
 

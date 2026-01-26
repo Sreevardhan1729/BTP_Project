@@ -1,7 +1,8 @@
 from pathlib import Path
 import logging
+from typing import Union
 
-def ensure_dir(path: str | Path) -> Path:
+def ensure_dir(path: Union[str, Path]) -> Path:
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     return p

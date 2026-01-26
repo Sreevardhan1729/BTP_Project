@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from pathlib import Path
 import json
 import numpy as np
@@ -49,7 +49,7 @@ class TxtDataset(Dataset):
         item["labels"] = item["input_ids"].clone()
         return item
 
-def save_lines(path: str | Path, lines: List[str]) -> None:
+def save_lines(path: Union[str, Path], lines: List[str]) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
