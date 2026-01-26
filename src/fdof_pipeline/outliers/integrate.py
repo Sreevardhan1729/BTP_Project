@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Literal, Tuple
+from typing import Literal, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -61,7 +61,7 @@ def apply_outlier_strategy(
     assert label_col in cleaned_df.columns
     return cleaned_df, scores_df, combined_mask
 
-def save_mask_json(path: str | Path, mask: np.ndarray) -> None:
+def save_mask_json(path: Union[str, Path], mask: np.ndarray) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     # store indices of removed rows for reproducibility

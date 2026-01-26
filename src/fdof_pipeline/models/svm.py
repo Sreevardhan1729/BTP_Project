@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Union
 import numpy as np
 import pandas as pd
 
@@ -30,12 +30,12 @@ from xgboost import XGBClassifier
 @dataclass
 class ModelConfig:
     type: str = "linear_svc"
-    class_weight: str | None = None
-    grid_C: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
-    grid_gamma: tuple[float, ...] = (0.001, 0.01, 0.1, 1.0)
+    class_weight: Union[str, None] = None
+    grid_C: Tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
+    grid_gamma: Tuple[float, ...] = (0.001, 0.01, 0.1, 1.0)
     # RF settings
-    grid_n_estimators: tuple[int, ...] = (100, 200, 300)
-    grid_max_depth: tuple[int | None, ...] = (10, 20, None)
+    grid_n_estimators: Tuple[int, ...] = (100, 200, 300)
+    grid_max_depth: Tuple[Union[int, None], ...] = (10, 20, None)
     grid_min_samples_leaf: tuple[int, ...] = (1, 2, 4)
     # XGBoost settings
     grid_learning_rate: tuple[float, ...] = (0.05, 0.1, 0.2)
@@ -53,7 +53,7 @@ def _build_pipeline(cfg: ModelConfig) -> Pipeline:
     elif cfg.type == "random_forest":
         model = RandomForestClassifier(class_weight=cfg.class_weight, random_state=0)
     elif cfg.type == "xgboost":
-        model = XGBClassifier(random_state=0, use_label_encoder=False, eval_metric='logloss')
+        model = XGBClassifier(random_state=0, eval_metric='logloss')
     else:
         model = LinearSVC(dual="auto", class_weight=cfg.class_weight, random_state=0, max_iter=10000)
     pipe = Pipeline([
@@ -71,7 +71,7 @@ def _param_grid(cfg: ModelConfig) -> Dict[str, list]:
     elif cfg.type == "random_forest":
         return {
             "model__n_estimators": list(cfg.grid_n_estimators),
-            "model__max_depth": list(cfg.grid_max_depth),
+            "model__max_depth": [int(x) if x is not None else None for x in cfg.grid_max_depth],
             "model__min_samples_leaf": list(cfg.grid_min_samples_leaf),
         }
     elif cfg.type == "xgboost":
@@ -172,7 +172,6 @@ def save_artifacts(
         f.write(rep + "\n")
 
     # Predictions CSV
-    pd.Now, I'll rerun the SVM training to ensure the predictions file is in the correct format.
     pd.DataFrame({
         "y_true": y_true,
         "y_pred": y_pred

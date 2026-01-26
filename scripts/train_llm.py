@@ -51,6 +51,16 @@ def main():
     gen = cfg["gen"]
     out = cfg["output"]
 
+    # --- Create unique output paths based on model name ---
+    model_name = str(mdl.get("model_name_or_path", "sshleifer/tiny-gpt2"))
+    model_fname = model_name.replace("/", "_")
+    ts = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+
+    out["model_dir"] = str(Path(out["model_dir"]).parent / f"model_{model_fname}_{ts}")
+    out["metrics_json"] = str(Path(out["metrics_json"]).parent / f"llm_{model_fname}_{ts}_metrics.json")
+    out["report_txt"] = str(Path(out["report_txt"]).parent / f"llm_{model_fname}_{ts}_report.txt")
+    out["preds_csv"] = str(Path(out["preds_csv"]).parent / f"llm_{model_fname}_{ts}_preds.csv")
+
     label_col = inp.get("label_col", "label")
     train_df = _load_selected(inp["train_csv"], label_col)
     val_df   = _load_selected(inp["val_csv"], label_col)
