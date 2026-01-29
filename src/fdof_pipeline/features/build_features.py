@@ -169,9 +169,14 @@ def build_and_save_features(
     Xva, _ = fb.transform(val_texts)
     Xte, _ = fb.transform(test_texts)
 
-    # Append labels
+    # Re-attach original text and append labels
+    Xtr[text_col] = train_df[text_col].to_numpy()
     Xtr[label_col] = train_df[label_col].to_numpy()
+    
+    Xva[text_col] = val_df[text_col].to_numpy()
     Xva[label_col] = val_df[label_col].to_numpy()
+
+    Xte[text_col] = test_df[text_col].to_numpy()
     Xte[label_col] = test_df[label_col].to_numpy()
 
     # Save CSVs
@@ -182,6 +187,7 @@ def build_and_save_features(
     logger.info(f"Wrote features: {(od / out_train)} | {(od / out_val)} | {(od / out_test)}")
 
     # Save names and vectorizer
+    # Note: feature names do not include the 'text' column, only features + label
     with open(od / names_json, "w", encoding="utf-8") as f:
         json.dump(names + [label_col], f, ensure_ascii=False, indent=2)
     

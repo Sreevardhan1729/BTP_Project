@@ -20,14 +20,28 @@ from src.fdof_pipeline.selection.efsa import (
 
 logger = get_logger("fdof.run_efsa")
 
-def _load_df(path: str, label_col: str) -> pd.DataFrame:
+def _load_df(path: str, label_col: str, text_col: str) -> pd.DataFrame:
     df = pd.read_csv(path)
     if label_col not in df.columns:
         raise KeyError(f"Label column '{label_col}' missing in {path}.")
-    # numeric conversion for all features (keep label as is)
-    feat_cols = [c for c in df.columns if c != label_col]
+    if text_col not in df.columns:
+        logger.warning(f"Text column '{text_col}' not found in {path}. It will not be preserved.")
+        text_col_present = False
+    else:
+        text_col_present = True
+    
+    # numeric conversion for all features (keep label and text as is)
+    cols_to_exclude = [label_col]
+    if text_col_present: cols_to_exclude.append(text_col)
+    
+    feat_cols = [c for c in df.columns if c not in cols_to_exclude]
     df[feat_cols] = df[feat_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
-    return df
+    
+    # Ensure label and text columns are preserved
+    final_cols = feat_cols + [label_col]
+    if text_col_present: final_cols.append(text_col)
+
+    return df[final_cols]
 
 def main():
     parser = argparse.ArgumentParser(description="Step 5: EFSA Genetic Algorithm for Feature Selection")
@@ -49,26 +63,31 @@ def main():
     out = cfg["output"]
 
     label_col = inp.get("label_col", "label")
-    train_df = _load_df(inp["train_csv"], label_col)
-    val_df   = _load_df(inp["val_csv"], label_col)
-    test_df  = _load_df(inp["test_csv"], label_col)
+    text_col = inp.get("text_col", "text")
+    train_df = _load_df(inp["train_csv"], label_col, text_col)
+    val_df   = _load_df(inp["val_csv"], label_col, text_col)
+    test_df  = _load_df(inp["test_csv"], label_col, text_col)
 
-    # Ensure train/val/test share the same feature set
-    feat_cols = [c for c in train_df.columns if c != label_col]
-    for df, name in [(val_df, "val"), (test_df, "test")]:
-        cols = [c for c in df.columns if c != label_col]
-        if cols != feat_cols:
-            # align column order and missing columns if any
-            missing = [c for c in feat_cols if c not in df.columns]
-            extras = [c for c in cols if c not in feat_cols]
+    # Ensure train/val/test share the same feature set and preserve text_col if present
+    # feat_cols in EFSA class will still exclude text_col as EFSA only works on numeric features
+    feat_cols_in_dfs = [c for c in train_df.columns if c not in [label_col, text_col]]
+
+    for df_ref, name in [((val_df), "val"), ((test_df), "test")]:
+        cols = [c for c in df_ref.columns if c not in [label_col, text_col]]
+        if cols != feat_cols_in_dfs:
+            missing = [c for c in feat_cols_in_dfs if c not in df_ref.columns]
+            extras = [c for c in cols if c not in feat_cols_in_dfs]
             if missing:
                 raise ValueError(f"{name} set missing columns not in train: {missing[:5]}...")
             if extras:
-                # drop any accidental extras
-                df.drop(columns=extras, inplace=True)
-            df = df[feat_cols + [label_col]]
-            if name == "val": val_df = df
-            else: test_df = df
+                df_ref.drop(columns=extras, inplace=True)
+            
+            # Re-order and ensure text_col and label_col are at the end for consistency
+            final_ordered_cols = feat_cols_in_dfs + ([text_col] if text_col in df_ref.columns else []) + [label_col]
+            df_ref = df_ref[final_ordered_cols]
+            
+        if name == "val": val_df = df_ref
+        else: test_df = df_ref
 
     # Build configs
     efsa_conf = EFSAConfig(
@@ -95,7 +114,8 @@ def main():
     )
 
     # Run EFSA
-    efsa = EFSA(df=train_df, label_col=label_col, cfg=efsa_conf)
+    # EFSA class will correctly exclude text_col from feature set for GA
+    efsa = EFSA(df=train_df.drop(columns=[text_col]) if text_col in train_df.columns else train_df, label_col=label_col, cfg=efsa_conf)
     best_mask, best_score = efsa.run()
     logger.info(f"EFSA best {efsa_conf.maximize_metric}={best_score:.4f} with {int(best_mask.sum())}/{efsa.n_features} features.")
 
@@ -112,6 +132,7 @@ def main():
     filter_and_save_by_mask(
         mask=best_mask,
         label_col=label_col,
+        text_col=text_col, # Pass text_col here
         train_df=train_df,
         val_df=val_df,
         test_df=test_df,

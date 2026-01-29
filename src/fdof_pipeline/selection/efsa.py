@@ -176,6 +176,7 @@ class EFSA:
 def filter_and_save_by_mask(
     mask: np.ndarray,
     label_col: str,
+    text_col: str,
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
     test_df: pd.DataFrame,
@@ -183,12 +184,17 @@ def filter_and_save_by_mask(
     out_val: str,
     out_test: str,
 ) -> None:
-    feat_cols = [c for c in train_df.columns if c != label_col]
+    feat_cols = [c for c in train_df.columns if c not in [label_col, text_col]]
     sel_cols = [c for c, m in zip(feat_cols, mask) if m]
-    # Preserve label
-    tr = pd.concat([train_df[sel_cols], train_df[[label_col]]], axis=1)
-    va = pd.concat([val_df[sel_cols],   val_df[[label_col]]], axis=1)
-    te = pd.concat([test_df[sel_cols],  test_df[[label_col]]], axis=1)
+    
+    # Columns to preserve: selected features, label, and text
+    cols_to_keep = sel_cols + [label_col]
+    if text_col in train_df.columns: # Check if text_col exists in the original df
+        cols_to_keep.append(text_col)
+
+    tr = train_df[cols_to_keep]
+    va = val_df[cols_to_keep]
+    te = test_df[cols_to_keep]
 
     pt = Path(out_train); pt.parent.mkdir(parents=True, exist_ok=True)
     pv = Path(out_val);   pv.parent.mkdir(parents=True, exist_ok=True)

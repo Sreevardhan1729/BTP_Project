@@ -3,6 +3,7 @@ input:
   val_csv:   "data/processed/val.selected.csv"
   test_csv:  "data/processed/test.selected.csv"
   label_col: "label"
+  text_col: "text" # Assumes a 'text' column in your CSVs
 
 prompt:
   top_k_tfidf: 20         # max TF-IDF features to verbalize per example
@@ -19,15 +20,9 @@ model:
   max_length: 512
   seed: 42
 
-training:
-  epochs: 1
-  batch_size: 8
-  learning_rate: 5.0e-5
-  weight_decay: 0.0
-  warmup_ratio: 0.0
-  gradient_accumulation_steps: 1
-  logging_steps: 50
-  save_total_limit: 1
+in_context_learning:
+  num_examples: 3 # Number of examples to put in the prompt
+  strategy: "random" # Selection strategy for examples
 
 gen:
   max_new_tokens: 1

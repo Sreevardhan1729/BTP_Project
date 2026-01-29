@@ -1,8 +1,9 @@
 input:
-  train_csv: "data/processed/features_train.cvclean.csv"  # cleaned by Step 4
+  train_csv: "data/processed/features_train.clean.csv"    # cleaned by Step 4
   val_csv:   "data/processed/features_val.csv"
   test_csv:  "data/processed/features_test.csv"
   label_col: "label"
+  text_col: "text" # Added to preserve text column
 
 cv:
   n_splits: 5

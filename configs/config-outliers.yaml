@@ -3,6 +3,7 @@ input:
   # (optional) Only used for sanity checks or later steps
   features_val_csv: "data/processed/features_val.csv"
   label_col: "label"
+  text_col: "text"
 
 outliers:
   standardize: true         # z-score scale features before scoring

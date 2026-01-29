@@ -23,12 +23,19 @@ from src.fdof_pipeline.outliers.integrate import (
 
 logger = get_logger("fdof.apply_outliers")
 
-def _load_features(path: str, label_col: str) -> pd.DataFrame:
+def _load_features(path: str, label_col: str, text_col: str) -> pd.DataFrame:
     df = pd.read_csv(path)
     if label_col not in df.columns:
         raise KeyError(f"Label column '{label_col}' not found in {path} (cols={list(df.columns)[:8]}...)")
-    # ensure numeric features
-    feat_cols = [c for c in df.columns if c != label_col]
+    if text_col not in df.columns:
+        logger.warning(f"Text column '{text_col}' not found in {path}. It will not be included.")
+    
+    # ensure numeric features, keeping text and label
+    cols_to_exclude = [label_col]
+    if text_col in df.columns:
+        cols_to_exclude.append(text_col)
+
+    feat_cols = [c for c in df.columns if c not in cols_to_exclude]
     df[feat_cols] = df[feat_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
     return df
 
@@ -50,10 +57,15 @@ def main():
     out = cfg["output"]
 
     label_col = inp.get("label_col", "label")
+    text_col = inp.get("text_col", "text") # Get text column from config
     train_path = inp["features_train_csv"]
-    feats_df = _load_features(train_path, label_col)
+    feats_df = _load_features(train_path, label_col, text_col)
 
-    feat_cols = [c for c in feats_df.columns if c != label_col]
+    # Exclude label and text columns for feature processing
+    cols_to_exclude = [label_col]
+    if text_col in feats_df.columns:
+        cols_to_exclude.append(text_col)
+    feat_cols = [c for c in feats_df.columns if c not in cols_to_exclude]
     X = feats_df[feat_cols].to_numpy(dtype=np.float64, copy=True)
 
     # Standardize if requested
