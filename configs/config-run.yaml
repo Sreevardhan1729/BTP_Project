@@ -1,10 +1,10 @@
 steps:
   prepare_data:
-    enabled: false
+    enabled: true
     script: "scripts/prepare_data.py"
     config: "configs/config-data.yaml"     # your Step-1 path
   featurize:
-    enabled: false
+    enabled: true
     script: "scripts/featurize.py"
     config: "configs/config-featurize.yaml"
   apply_outliers:
@@ -12,11 +12,11 @@ steps:
     script: "scripts/apply_outliers.py"
     config: "configs/config-outliers.yaml"
   tune_outliers:
-    enabled: false
+    enabled: true
     script: "scripts/tune_outliers.py"
     config: "configs/config-tune-outliers.yaml"
   run_efsa:
-    enabled: false
+    enabled: true
     script: "scripts/run_efsa.py"
     config: "configs/config-efsa.yaml"
   train_svm:

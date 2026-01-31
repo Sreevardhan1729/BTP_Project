@@ -16,7 +16,7 @@ model:
   # For more powerful models (if you have sufficient VRAM), consider:
   # - "microsoft/Phi-3-mini-4k-instruct"
   # - "mistralai/Mistral-7B-Instruct-v0.2"
-  model_name_or_path: "sshleifer/tiny-gpt2"
+  model_name_or_path: "meta-llama/Meta-Llama-3-70B"
   max_length: 512
   seed: 42
 
